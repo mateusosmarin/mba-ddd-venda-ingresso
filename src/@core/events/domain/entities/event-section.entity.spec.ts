@@ -15,4 +15,5 @@ test('Should create an event section', () => {
   expect(eventSection.total_spots_reserved).toBe(0);
   expect(eventSection.price).toBe(100);
   expect(eventSection.is_published).toBe(false);
+  expect(eventSection.spots.size).toBe(0);
 });
