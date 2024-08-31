@@ -1,6 +1,11 @@
 import { Entity } from 'src/@core/common/domain/entity';
 import { Uuid } from 'src/@core/common/domain/value-objects/uuid.vo';
 import { EventSpot } from './event-spot.entity';
+import {
+  AnyCollection,
+  Collection,
+  CollectionFactory,
+} from 'src/@core/common/domain/collection';
 
 export class EventSectionId extends Uuid {}
 
@@ -12,7 +17,6 @@ type EventSectionConstructorProps = {
   total_spots: number;
   total_spots_reserved: number;
   price: number;
-  spots?: Set<EventSpot>;
 };
 
 type EventSectionCreateCommand = {
@@ -30,7 +34,7 @@ export class EventSection extends Entity {
   total_spots: number;
   total_spots_reserved: number;
   price: number;
-  spots: Set<EventSpot>;
+  private _spots: Collection<EventSpot>;
 
   constructor(props: EventSectionConstructorProps) {
     super();
@@ -44,7 +48,7 @@ export class EventSection extends Entity {
     this.total_spots = props.total_spots;
     this.total_spots_reserved = props.total_spots_reserved;
     this.price = props.price;
-    this.spots = props.spots ?? new Set<EventSpot>();
+    this._spots = CollectionFactory.create<EventSpot>(this);
   }
 
   static create(command: EventSectionCreateCommand) {
@@ -89,6 +93,14 @@ export class EventSection extends Entity {
 
   unpublish() {
     this.is_published = false;
+  }
+
+  get spots(): Collection<EventSpot> {
+    return this._spots;
+  }
+
+  set spots(spots: AnyCollection<EventSpot>) {
+    this._spots = CollectionFactory.createFrom<EventSpot>(spots);
   }
 
   toJSON() {

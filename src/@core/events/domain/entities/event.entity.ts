@@ -2,6 +2,11 @@ import { AggregateRoot } from 'src/@core/common/domain/aggregate-root';
 import { Uuid } from 'src/@core/common/domain/value-objects/uuid.vo';
 import { PartnerId } from './partner.entity';
 import { EventSection } from './event-section.entity';
+import {
+  AnyCollection,
+  Collection,
+  CollectionFactory,
+} from 'src/@core/common/domain/collection';
 
 export class EventId extends Uuid {}
 
@@ -14,7 +19,6 @@ type EventConstructorProps = {
   total_spots: number;
   total_spots_reserved: number;
   partner_id: PartnerId;
-  sections?: Set<EventSection>;
 };
 
 type CreateEventCommand = {
@@ -40,7 +44,7 @@ export class Event extends AggregateRoot {
   total_spots: number;
   total_spots_reserved: number;
   partner_id: PartnerId;
-  sections: Set<EventSection>;
+  private _sections: Collection<EventSection>;
 
   constructor(props: EventConstructorProps) {
     super();
@@ -58,7 +62,7 @@ export class Event extends AggregateRoot {
       props.partner_id instanceof PartnerId
         ? props.partner_id
         : new PartnerId(props.partner_id);
-    this.sections = props.sections ?? new Set<EventSection>();
+    this._sections = CollectionFactory.create<EventSection>(this);
   }
 
   static create(command: CreateEventCommand) {
@@ -69,6 +73,14 @@ export class Event extends AggregateRoot {
       total_spots: 0,
       total_spots_reserved: 0,
     });
+  }
+
+  get sections(): Collection<EventSection> {
+    return this._sections;
+  }
+
+  set sections(sections: AnyCollection<EventSection>) {
+    this._sections = CollectionFactory.createFrom(sections);
   }
 
   addSection(command: AddSectionCommand) {
