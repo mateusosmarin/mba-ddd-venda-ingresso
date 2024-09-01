@@ -1,4 +1,5 @@
 import { EntityManager } from '@mikro-orm/mysql';
+import { Queue } from 'bull';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module, OnModuleInit } from '@nestjs/common';
 import { UnitOfWork } from 'src/@core/common/application/unit-of-work';
@@ -37,6 +38,10 @@ import { ApplicationService } from 'src/@core/common/application/application.ser
 import { DomainEventManager } from 'src/@core/common/domain/domain-event-manager';
 import { ModuleRef } from '@nestjs/core';
 import { LogHandler } from 'src/@core/events/application/handlers/log.handler';
+import { BullModule, InjectQueue } from '@nestjs/bull';
+import { IntegrationEvent } from 'src/@core/common/domain/integration-event';
+import { PartnerCreated } from 'src/@core/events/domain/domain-events/partner-created.event';
+import { PartnerCreatedIntegrationEvent } from 'src/@core/events/domain/integration-events/partner-created.integration-event';
 
 @Module({
   imports: [
@@ -50,6 +55,9 @@ import { LogHandler } from 'src/@core/events/application/handlers/log.handler';
       SpotReservationSchema,
     ]),
     ApplicationModule,
+    BullModule.registerQueue({
+      name: 'integration-events',
+    }),
   ],
   providers: [
     {
@@ -162,6 +170,8 @@ export class EventsModule implements OnModuleInit {
   constructor(
     private readonly domainEventManager: DomainEventManager,
     private moduleRef: ModuleRef,
+    @InjectQueue('integration-events')
+    private integrationEventsQueue: Queue<IntegrationEvent<unknown>>,
   ) {}
 
   onModuleInit() {
@@ -171,5 +181,12 @@ export class EventsModule implements OnModuleInit {
         await handler.handle(event);
       });
     });
+    this.domainEventManager.register(
+      PartnerCreated.name,
+      async (event: PartnerCreated) => {
+        const integrationEvent = new PartnerCreatedIntegrationEvent(event);
+        await this.integrationEventsQueue.add(integrationEvent);
+      },
+    );
   }
 }
