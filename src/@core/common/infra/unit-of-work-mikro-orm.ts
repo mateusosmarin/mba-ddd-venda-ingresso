@@ -1,5 +1,6 @@
 import { EntityManager } from '@mikro-orm/core';
 import { UnitOfWork } from '../application/unit-of-work';
+import { AggregateRoot } from '../domain/aggregate-root';
 
 export class UnitOfWorkMikroORM implements UnitOfWork {
   constructor(private em: EntityManager) {}
@@ -24,5 +25,12 @@ export class UnitOfWorkMikroORM implements UnitOfWork {
 
   async rollback() {
     this.em.clear();
+  }
+
+  getAggregateRoots(): AggregateRoot[] {
+    return [
+      ...this.em.getUnitOfWork().getPersistStack(),
+      ...this.em.getUnitOfWork().getRemoveStack(),
+    ] as AggregateRoot[];
   }
 }

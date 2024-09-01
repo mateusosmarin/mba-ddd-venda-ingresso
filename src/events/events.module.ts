@@ -1,6 +1,6 @@
 import { EntityManager } from '@mikro-orm/mysql';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { UnitOfWork } from 'src/@core/common/application/unit-of-work';
 import { CustomerService } from 'src/@core/events/application/customer.service';
 import { EventService } from 'src/@core/events/application/event.service';
@@ -32,6 +32,11 @@ import { EventsController } from './events/events.controller';
 import { EventSectionsController } from './event-sections/event-sections.controller';
 import { EventSpotsController } from './event-spots/event-spots.controller';
 import { OrdersController } from './orders/orders.controller';
+import { ApplicationModule } from 'src/application/application.module';
+import { ApplicationService } from 'src/@core/common/application/application.service';
+import { DomainEventManager } from 'src/@core/common/domain/domain-event-manager';
+import { ModuleRef } from '@nestjs/core';
+import { LogHandler } from 'src/@core/events/application/handlers/log.handler';
 
 @Module({
   imports: [
@@ -44,6 +49,7 @@ import { OrdersController } from './orders/orders.controller';
       OrderSchema,
       SpotReservationSchema,
     ]),
+    ApplicationModule,
   ],
   providers: [
     {
@@ -93,9 +99,12 @@ import { OrdersController } from './orders/orders.controller';
     },
     {
       provide: PartnerService,
-      inject: ['PartnerRepository', 'UnitOfWork'],
-      useFactory(partnerRepository: PartnerRepository, unitOfWork: UnitOfWork) {
-        return new PartnerService(partnerRepository, unitOfWork);
+      inject: ['PartnerRepository', ApplicationService],
+      useFactory(
+        partnerRepository: PartnerRepository,
+        applicationService: ApplicationService,
+      ) {
+        return new PartnerService(partnerRepository, applicationService);
       },
     },
     {
@@ -138,6 +147,7 @@ import { OrdersController } from './orders/orders.controller';
         );
       },
     },
+    LogHandler,
   ],
   controllers: [
     PartnersController,
@@ -148,4 +158,18 @@ import { OrdersController } from './orders/orders.controller';
     OrdersController,
   ],
 })
-export class EventsModule {}
+export class EventsModule implements OnModuleInit {
+  constructor(
+    private readonly domainEventManager: DomainEventManager,
+    private moduleRef: ModuleRef,
+  ) {}
+
+  onModuleInit() {
+    LogHandler.listensTo().forEach((eventName) => {
+      this.domainEventManager.register(eventName, async (event) => {
+        const handler = await this.moduleRef.resolve(LogHandler);
+        await handler.handle(event);
+      });
+    });
+  }
+}
