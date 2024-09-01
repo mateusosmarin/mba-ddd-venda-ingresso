@@ -1,6 +1,6 @@
 import { Entity } from 'src/@core/common/domain/entity';
 import { Uuid } from 'src/@core/common/domain/value-objects/uuid.vo';
-import { EventSpot } from './event-spot.entity';
+import { EventSpot, EventSpotId } from './event-spot.entity';
 import {
   AnyCollection,
   Collection,
@@ -93,6 +93,14 @@ export class EventSection extends Entity {
 
   unpublish() {
     this.is_published = false;
+  }
+
+  changeSpotLocation(command: { spot_id: EventSpotId; location: string }) {
+    const spot = this.spots.find((spot) => spot.id.equals(command.spot_id));
+    if (!spot) {
+      throw new Error('Spot not found');
+    }
+    spot.changeLocation(command.location);
   }
 
   get spots(): Collection<EventSpot> {
