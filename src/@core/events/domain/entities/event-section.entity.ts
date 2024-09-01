@@ -111,6 +111,31 @@ export class EventSection extends Entity {
     this._spots = CollectionFactory.createFrom<EventSpot>(spots);
   }
 
+  isSpotAvailable(spot_id: EventSpotId) {
+    if (!this.is_published) {
+      return false;
+    }
+    const spot = this.spots.find((spot) => spot.id.equals(spot_id));
+    if (!spot) {
+      throw new Error('Spot not found');
+    }
+    if (!spot.is_published) {
+      return false;
+    }
+    if (spot.is_reserved) {
+      return false;
+    }
+    return true;
+  }
+
+  reserveSpot(spotId: EventSpotId) {
+    const spot = this.spots.find((spot) => spot.id.equals(spotId));
+    if (!spot) {
+      throw new Error('Spot not found');
+    }
+    spot.reserve();
+  }
+
   toJSON() {
     return {
       id: this.id.value,

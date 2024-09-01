@@ -147,6 +147,29 @@ export class Event extends AggregateRoot {
     section.changeSpotLocation(command);
   }
 
+  isSpotAvailable(data: { section_id: EventSectionId; spot_id: EventSpotId }) {
+    if (!this.is_published) {
+      return false;
+    }
+    const section = this.sections.find((section) =>
+      section.id.equals(data.section_id),
+    );
+    if (!section) {
+      throw new Error('Section not found');
+    }
+    return section.isSpotAvailable(data.spot_id);
+  }
+
+  reserveSpot(command: { section_id: EventSectionId; spot_id: EventSpotId }) {
+    const section = this.sections.find((section) =>
+      section.id.equals(command.section_id),
+    );
+    if (!section) {
+      throw new Error('Section not found');
+    }
+    section.reserveSpot(command.spot_id);
+  }
+
   toJSON() {
     return {
       id: this.id.value,

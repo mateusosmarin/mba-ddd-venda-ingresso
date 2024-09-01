@@ -47,6 +47,13 @@ export class EventSpot extends Entity {
     this.is_published = false;
   }
 
+  reserve() {
+    if (this.is_reserved) {
+      throw new Error('Spot already reserved');
+    }
+    this.is_reserved = true;
+  }
+
   toJSON() {
     return {
       id: this.id.value,
